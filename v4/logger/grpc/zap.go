@@ -3,7 +3,6 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
 	"os"
 	"sync"
 
@@ -18,8 +17,8 @@ type zapLog struct {
 	zap  *zap.Logger
 	opts logger.Options
 	sync.RWMutex
-	fields map[string]interface{}
-	client proto.LoggerService
+	fields     map[string]interface{}
+	grpcWriter *Writer
 }
 
 func (l *zapLog) Init(opts ...logger.Option) error {
@@ -27,6 +26,10 @@ func (l *zapLog) Init(opts ...logger.Option) error {
 
 	for _, o := range opts {
 		o(&l.opts)
+	}
+
+	if wr, ok := l.opts.Context.Value(LogWriterKey{}).(Writer); ok {
+		l.grpcWriter = &wr
 	}
 
 	zapConfig := zap.NewProductionConfig()
@@ -43,7 +46,9 @@ func (l *zapLog) Init(opts ...logger.Option) error {
 		zapConfig.Level.SetLevel(loggerToZapLevel(l.opts.Level))
 	}
 
-	log, err := zapConfig.Build(zap.AddCallerSkip(l.opts.CallerSkipCount))
+	log, err := zapConfig.Build(zap.AddCallerSkip(l.opts.CallerSkipCount), zap.Hooks(func(entry zapcore.Entry) error {
+		return l.grpcWriter.Write([]byte(entry.Message))
+	}))
 	if err != nil {
 		return err
 	}
@@ -213,9 +218,4 @@ func zapToLoggerLevel(level zapcore.Level) logger.Level {
 	default:
 		return logger.InfoLevel
 	}
-}
-
-func writeFunc(p []byte) (int, error) {
-
-	return len("xxxxx"), nil
 }
