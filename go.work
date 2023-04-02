@@ -1,3 +1,4 @@
 go 1.20
 
 use ./v4/config/source/grpc
+use v4/logger/grpc
