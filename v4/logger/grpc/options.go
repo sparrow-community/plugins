@@ -39,6 +39,6 @@ func WithOptions(opts ...zap.Option) logger.Option {
 
 type LogWriterKey struct{}
 
-func WithLogWriterKey(serviceName string) logger.Option {
-	return logger.SetOption(LogWriterKey{}, serviceName)
+func WithLogWriterKey(writer *ZapGrpcWriter) logger.Option {
+	return logger.SetOption(LogWriterKey{}, writer)
 }

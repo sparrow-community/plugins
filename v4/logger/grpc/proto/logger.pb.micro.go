@@ -36,7 +36,7 @@ func NewLoggerEndpoints() []*api.Endpoint {
 // Client API for Logger service
 
 type LoggerService interface {
-	Write(ctx context.Context, opts ...client.CallOption) (Logger_WriteService, error)
+	Write(ctx context.Context, in *WriteRequest, opts ...client.CallOption) (*WriteResponse, error)
 }
 
 type loggerService struct {
@@ -51,61 +51,25 @@ func NewLoggerService(name string, c client.Client) LoggerService {
 	}
 }
 
-func (c *loggerService) Write(ctx context.Context, opts ...client.CallOption) (Logger_WriteService, error) {
-	req := c.c.NewRequest(c.name, "Logger.Write", &WriteRequest{})
-	stream, err := c.c.Stream(ctx, req, opts...)
+func (c *loggerService) Write(ctx context.Context, in *WriteRequest, opts ...client.CallOption) (*WriteResponse, error) {
+	req := c.c.NewRequest(c.name, "Logger.Write", in)
+	out := new(WriteResponse)
+	err := c.c.Call(ctx, req, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return &loggerServiceWrite{stream}, nil
-}
-
-type Logger_WriteService interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	CloseSend() error
-	Close() error
-	Send(*WriteRequest) error
-}
-
-type loggerServiceWrite struct {
-	stream client.Stream
-}
-
-func (x *loggerServiceWrite) CloseSend() error {
-	return x.stream.CloseSend()
-}
-
-func (x *loggerServiceWrite) Close() error {
-	return x.stream.Close()
-}
-
-func (x *loggerServiceWrite) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *loggerServiceWrite) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *loggerServiceWrite) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *loggerServiceWrite) Send(m *WriteRequest) error {
-	return x.stream.Send(m)
+	return out, nil
 }
 
 // Server API for Logger service
 
 type LoggerHandler interface {
-	Write(context.Context, Logger_WriteStream) error
+	Write(context.Context, *WriteRequest, *WriteResponse) error
 }
 
 func RegisterLoggerHandler(s server.Server, hdlr LoggerHandler, opts ...server.HandlerOption) error {
 	type logger interface {
-		Write(ctx context.Context, stream server.Stream) error
+		Write(ctx context.Context, in *WriteRequest, out *WriteResponse) error
 	}
 	type Logger struct {
 		logger
@@ -118,42 +82,6 @@ type loggerHandler struct {
 	LoggerHandler
 }
 
-func (h *loggerHandler) Write(ctx context.Context, stream server.Stream) error {
-	return h.LoggerHandler.Write(ctx, &loggerWriteStream{stream})
-}
-
-type Logger_WriteStream interface {
-	Context() context.Context
-	SendMsg(interface{}) error
-	RecvMsg(interface{}) error
-	Close() error
-	Recv() (*WriteRequest, error)
-}
-
-type loggerWriteStream struct {
-	stream server.Stream
-}
-
-func (x *loggerWriteStream) Close() error {
-	return x.stream.Close()
-}
-
-func (x *loggerWriteStream) Context() context.Context {
-	return x.stream.Context()
-}
-
-func (x *loggerWriteStream) SendMsg(m interface{}) error {
-	return x.stream.Send(m)
-}
-
-func (x *loggerWriteStream) RecvMsg(m interface{}) error {
-	return x.stream.Recv(m)
-}
-
-func (x *loggerWriteStream) Recv() (*WriteRequest, error) {
-	m := new(WriteRequest)
-	if err := x.stream.Recv(m); err != nil {
-		return nil, err
-	}
-	return m, nil
+func (h *loggerHandler) Write(ctx context.Context, in *WriteRequest, out *WriteResponse) error {
+	return h.LoggerHandler.Write(ctx, in, out)
 }

@@ -3,42 +3,46 @@ package grpc
 import (
 	"context"
 	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
-	"go-micro.dev/v4/logger"
+	"sync"
+	"sync/atomic"
+	"syscall"
 )
 
-type Writer struct {
-	serviceName string
-	client      proto.LoggerService
-	message     chan []byte
+type ZapGrpcWriter struct {
+	ServiceName string
+	Client      proto.LoggerService
+
+	closed     int32
+	closeMutex sync.Mutex
 }
 
-func (g *Writer) Write(msg []byte) error {
-	go func() {
-		g.message <- msg
-	}()
-	return nil
-}
-
-func (g *Writer) write() error {
-	stream, err := g.client.Write(context.Background())
+func (g *ZapGrpcWriter) Write(msg []byte) (n int, err error) {
+	rsp, err := g.Client.Write(context.Background(), &proto.WriteRequest{
+		ServiceName: g.ServiceName,
+		Data:        msg,
+	})
 	if err != nil {
-		return err
+		return 0, err
 	}
-	defer stream.Close()
-	defer close(g.message)
-	go func() {
-		for {
-			select {
-			case msg := <-g.message:
-				err := stream.Send(&proto.WriteRequest{
-					ServiceName: g.serviceName,
-					Data:        msg,
-				})
-				if err != nil {
-					logger.Errorf("failed to send message: %v", err)
-				}
-			}
-		}
-	}()
+	return int(rsp.N), nil
+}
+
+func (g *ZapGrpcWriter) Sync() error {
 	return nil
+}
+
+func (g *ZapGrpcWriter) Close() error {
+	g.closeMutex.Lock()
+	defer g.closeMutex.Unlock()
+
+	if g.Closed() {
+		return syscall.EINVAL
+	}
+
+	atomic.StoreInt32(&g.closed, 1)
+	return nil
+}
+
+func (g *ZapGrpcWriter) Closed() bool {
+	return atomic.LoadInt32(&g.closed) != 0
 }

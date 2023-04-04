@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"sync"
 
@@ -18,7 +19,7 @@ type zapLog struct {
 	opts logger.Options
 	sync.RWMutex
 	fields     map[string]interface{}
-	grpcWriter *Writer
+	grpcWriter *ZapGrpcWriter
 }
 
 func (l *zapLog) Init(opts ...logger.Option) error {
@@ -28,8 +29,8 @@ func (l *zapLog) Init(opts ...logger.Option) error {
 		o(&l.opts)
 	}
 
-	if wr, ok := l.opts.Context.Value(LogWriterKey{}).(Writer); ok {
-		l.grpcWriter = &wr
+	if wr, ok := l.opts.Context.Value(LogWriterKey{}).(*ZapGrpcWriter); ok {
+		l.grpcWriter = wr
 	}
 
 	zapConfig := zap.NewProductionConfig()
@@ -40,15 +41,17 @@ func (l *zapLog) Init(opts ...logger.Option) error {
 	if config, ok := l.opts.Context.Value(encoderConfigKey{}).(zapcore.EncoderConfig); ok {
 		zapConfig.EncoderConfig = config
 	}
+	err = zap.RegisterSink("grpc", func(url *url.URL) (zap.Sink, error) {
+		return l.grpcWriter, nil
+	})
+	zapConfig.OutputPaths = append(zapConfig.OutputPaths, "grpc:")
 	// Set log Level if not default
 	zapConfig.Level = zap.NewAtomicLevel()
 	if l.opts.Level != logger.InfoLevel {
 		zapConfig.Level.SetLevel(loggerToZapLevel(l.opts.Level))
 	}
 
-	log, err := zapConfig.Build(zap.AddCallerSkip(l.opts.CallerSkipCount), zap.Hooks(func(entry zapcore.Entry) error {
-		return l.grpcWriter.Write([]byte(entry.Message))
-	}))
+	log, err := zapConfig.Build(zap.AddCallerSkip(l.opts.CallerSkipCount))
 	if err != nil {
 		return err
 	}
