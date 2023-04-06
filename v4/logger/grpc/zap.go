@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
+	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
 	"net/url"
 	"os"
 	"sync"
@@ -29,8 +30,15 @@ func (l *zapLog) Init(opts ...logger.Option) error {
 		o(&l.opts)
 	}
 
-	if wr, ok := l.opts.Context.Value(LogWriterKey{}).(*ZapGrpcWriter); ok {
-		l.grpcWriter = wr
+	if serviceName, ok := l.opts.Context.Value(ServiceNameKey{}).(string); ok {
+		if client, ok := l.opts.Context.Value(ClientKey{}).(proto.LoggerService); ok {
+			l.grpcWriter = &ZapGrpcWriter{
+				serviceName: serviceName,
+				client:      client,
+				closed:      0,
+				closeMutex:  sync.Mutex{},
+			}
+		}
 	}
 
 	zapConfig := zap.NewProductionConfig()

@@ -3,22 +3,24 @@ package grpc
 import (
 	"context"
 	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/logger"
 	"sync"
 	"sync/atomic"
 	"syscall"
 )
 
 type ZapGrpcWriter struct {
-	ServiceName string
-	Client      proto.LoggerService
+	serviceName string
+	client      proto.LoggerService
 
 	closed     int32
 	closeMutex sync.Mutex
 }
 
 func (g *ZapGrpcWriter) Write(msg []byte) (n int, err error) {
-	rsp, err := g.Client.Write(context.Background(), &proto.WriteRequest{
-		ServiceName: g.ServiceName,
+	rsp, err := g.client.Write(context.Background(), &proto.WriteRequest{
+		ServiceName: g.serviceName,
 		Data:        msg,
 	})
 	if err != nil {
@@ -45,4 +47,18 @@ func (g *ZapGrpcWriter) Close() error {
 
 func (g *ZapGrpcWriter) Closed() bool {
 	return atomic.LoadInt32(&g.closed) != 0
+}
+
+// InitializeLogger is initialize logger service
+func InitializeLogger(serviceName string) {
+	cs := client.DefaultClient
+	l, err := NewLogger(
+		WithServiceNameKey(serviceName),
+		WithClientKey(proto.NewLoggerService("github.com.sparrow-community.logger-service", cs)),
+	)
+	if nil != err {
+		logger.Error("logger service error: ", err)
+	} else {
+		logger.DefaultLogger = l
+	}
 }

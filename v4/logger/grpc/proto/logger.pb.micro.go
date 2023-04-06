@@ -33,7 +33,7 @@ func NewLoggerEndpoints() []*api.Endpoint {
 	return []*api.Endpoint{}
 }
 
-// Client API for Logger service
+// client API for Logger service
 
 type LoggerService interface {
 	Write(ctx context.Context, in *WriteRequest, opts ...client.CallOption) (*WriteResponse, error)

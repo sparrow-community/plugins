@@ -34,7 +34,7 @@ func NewSourceEndpoints() []*api.Endpoint {
 	return []*api.Endpoint{}
 }
 
-// Client API for Source service
+// client API for Source service
 
 type SourceService interface {
 	Read(ctx context.Context, in *ReadRequest, opts ...client.CallOption) (*ReadResponse, error)

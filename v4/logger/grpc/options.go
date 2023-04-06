@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
@@ -37,8 +38,14 @@ func WithOptions(opts ...zap.Option) logger.Option {
 	return logger.SetOption(optionsKey{}, opts)
 }
 
-type LogWriterKey struct{}
+type ClientKey struct{}
 
-func WithLogWriterKey(writer *ZapGrpcWriter) logger.Option {
-	return logger.SetOption(LogWriterKey{}, writer)
+func WithClientKey(client proto.LoggerService) logger.Option {
+	return logger.SetOption(ClientKey{}, client)
+}
+
+type ServiceNameKey struct{}
+
+func WithServiceNameKey(serviceName string) logger.Option {
+	return logger.SetOption(ServiceNameKey{}, serviceName)
 }
