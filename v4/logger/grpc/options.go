@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
+	"github.com/sparrow-community/protos/logger"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 

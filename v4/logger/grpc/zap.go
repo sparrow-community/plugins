@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"fmt"
-	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
+	"github.com/sparrow-community/protos/logger"
 	"net/url"
 	"os"
 	"sync"

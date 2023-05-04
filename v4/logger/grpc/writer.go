@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"github.com/sparrow-community/plugins/v4/logger/grpc/proto"
+	"github.com/sparrow-community/protos/logger"
 	"go-micro.dev/v4/client"
 	"go-micro.dev/v4/logger"
 	"sync"
@@ -54,7 +54,7 @@ func InitializeLogger(serviceName string) {
 	cs := client.DefaultClient
 	l, err := NewLogger(
 		WithServiceNameKey(serviceName),
-		WithClientKey(proto.NewLoggerService("github.com.sparrow-community.logger-service", cs)),
+		WithClientKey(proto.NewLoggerService("logger", cs)),
 	)
 	if nil != err {
 		logger.Error("logger service error: ", err)

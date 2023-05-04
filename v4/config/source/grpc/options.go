@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	"github.com/sparrow-community/plugins/v4/config/source/grpc/proto"
+	"github.com/sparrow-community/protos/config"
 	"go-micro.dev/v4/config/source"
 	"golang.org/x/net/context"
 )

@@ -7,7 +7,6 @@ go 1.20
 require (
 	go-micro.dev/v4 v4.10.0
 	go.uber.org/zap v1.10.0
-	google.golang.org/protobuf v1.30.0
 )
 
 require (

@@ -1,9 +1,14 @@
 package grpc
 
 import (
-	"github.com/sparrow-community/plugins/v4/config/source/grpc/proto"
+	"github.com/sparrow-community/protos/config"
+	"go-micro.dev/v4/client"
+	"go-micro.dev/v4/config"
 	"go-micro.dev/v4/config/source"
+	"go-micro.dev/v4/config/source/file"
+	"go-micro.dev/v4/logger"
 	"golang.org/x/net/context"
+	"os"
 )
 
 type grpcSource struct {
@@ -50,12 +55,12 @@ func NewSource(opts ...source.Option) source.Source {
 		o(&options)
 	}
 
-	var client proto.SourceService
+	var sourceService proto.SourceService
 	path := "/"
 	if options.Context != nil {
 		c, ok := options.Context.Value(clientKey{}).(proto.SourceService)
 		if ok {
-			client = c
+			sourceService = c
 		}
 		p, ok := options.Context.Value(pathKey{}).(string)
 		if ok {
@@ -66,6 +71,49 @@ func NewSource(opts ...source.Option) source.Source {
 	return &grpcSource{
 		opts:   options,
 		path:   path,
-		client: client,
+		client: sourceService,
 	}
+}
+
+func InitializeConfig(path string, client client.Client, sources ...source.Source) (config.Config, error) {
+	var _sources []source.Source
+	// register center
+	cfgClient := proto.NewSourceService("github.com.sparrow-community.config-service", client)
+	registerCenterSource := NewSource(
+		WithPath(path),
+		WithClient(cfgClient),
+	)
+	_sources = append(_sources, registerCenterSource)
+
+	// local
+	b, err := exists(path)
+	if err != nil {
+		logger.Error(err)
+		return nil, err
+	}
+	if b {
+		_sources = append(_sources, file.NewSource(file.WithPath(path)))
+	}
+
+	if len(sources) != 0 {
+		_sources = append(_sources, sources...)
+	}
+
+	if err := config.Load(_sources...); err != nil {
+		logger.Fatal(err)
+		return nil, err
+	}
+
+	return config.DefaultConfig, err
+}
+
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return true, err
 }
